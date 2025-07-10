@@ -41,6 +41,7 @@
             flex-shrink: 0;
         }
 
+
         #player {
             position: absolute;
             width: 60px;
@@ -154,7 +155,7 @@
                 player.style.bottom = '10px';
                 timeSurvivedFrames = 0;
                 virusSpeed = 2;
-                spawnRate = 1500;
+                spawnRate = 1200; // REDUZIDO: Tempo inicial de spawn um pouco menor
                 lastDifficultyIncreaseSecond = 0;
                 timeSurvivedSpan.textContent = '0';
                 messageDiv.textContent = '';
@@ -163,6 +164,9 @@
                 
                 gameActive = true;
                 
+                // NOVO: Cria o primeiro vírus imediatamente
+                createVirus();
+
                 gameUpdateInterval = setInterval(updateGame, 20);
                 virusSpawnInterval = setInterval(createVirus, spawnRate);
 
@@ -213,16 +217,22 @@
             }
 
             function checkCollisions() {
-                const playerLeft = player.offsetLeft;
-                const playerTop = player.offsetTop;
-                const playerRight = playerLeft + playerWidth;
-                const playerBottom = playerTop + playerHeight;
+                // Ajuste de colisão: Reduz o tamanho efetivo da caixa de colisão
+                // Isso cria uma "margem" para que a colisão seja mais precisa com imagens não-retangulares
+                const playerCollisionPaddingX = 10; // Reduz a caixa em 10px de cada lado na horizontal
+                const playerCollisionPaddingY = 10; // Reduz a caixa em 10px de cada lado na vertical
+                const virusCollisionPadding = 5;    // Reduz a caixa em 5px de cada lado para o vírus
+
+                const playerLeft = player.offsetLeft + playerCollisionPaddingX;
+                const playerTop = player.offsetTop + playerCollisionPaddingY;
+                const playerRight = playerLeft + playerWidth - (playerCollisionPaddingX * 2);
+                const playerBottom = playerTop + playerHeight - (playerCollisionPaddingY * 2);
 
                 document.querySelectorAll('.virus').forEach(virus => {
-                    const virusLeft = virus.offsetLeft;
-                    const virusTop = virus.offsetTop;
-                    const virusRight = virusLeft + virusWidth;
-                    const virusBottom = virusTop + virusHeight;
+                    const virusLeft = virus.offsetLeft + virusCollisionPadding;
+                    const virusTop = virus.offsetTop + virusCollisionPadding;
+                    const virusRight = virusLeft + virusWidth - (virusCollisionPadding * 2);
+                    const virusBottom = virusTop + virusHeight - (virusCollisionPadding * 2);
 
                     if (playerRight > virusLeft &&
                         playerLeft < virusRight &&
