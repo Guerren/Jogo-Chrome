@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chrome Runner: Desvie dos Vírus!</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow: hidden; /* Evita barras de rolagem indesejadas */
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        #game-container {
+            width: 400px; /* Largura da área do jogo */
+            height: 500px; /* Altura da área do jogo */
+            border: 5px solid #007bff; /* Borda azul */
+            background-color: #e6f7ff; /* Fundo mais claro */
+            position: relative;
+            overflow: hidden; /* Garante que os elementos fiquem dentro do contêiner */
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+        }
+
+        #player {
+            position: absolute;
+            width: 60px; /* Tamanho do logo do Chrome */
+            height: 60px;
+            background-image: url('http://googleusercontent.com/image_generation_content/1'); /* URL da imagem do Chrome */
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            bottom: 10px; /* Posição inicial na parte inferior */
+            left: calc(50% - 30px); /* Centraliza horizontalmente */
+            transition: left 0.05s linear; /* Movimento suave */
+        }
+
+        .virus {
+            position: absolute;
+            width: 40px; /* Tamanho do vírus */
+            height: 40px;
+            background-image: url('http://googleusercontent.com/image_generation_content/2'); /* URL da imagem do Vírus */
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            top: -50px; /* Começa acima da tela */
+            left: 0; /* Posição inicial aleatória será definida pelo JS */
+        }
+
+        #score-board {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 15px;
+        }
+
+        #message {
+            font-size: 1.8em;
+            color: #dc3545; /* Cor vermelha para mensagem de game over */
+            font-weight: bold;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        button {
+            padding: 12px 25px;
+            font-size: 1.1em;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 20px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Chrome Runner: Desvie dos Vírus!</h1>
+    <div id="score-board">Tempo Sobrevivido: <span id="time-survived">0</span>s</div>
+    <div id="game-container">
+        <div id="player"></div>
+    </div>
+    <div id="message"></div>
+    <button id="restart-button">Reiniciar Jogo</button>
+
+    <script>
+        const gameContainer = document.getElementById('game-container');
+        const player = document.getElementById('player');
+        const timeSurvivedSpan = document.getElementById('time-survived');
+        const messageDiv = document.getElementById('message');
+        const restartButton = document.getElementById('restart-button');
+
+        const playerWidth = 60;
+        const playerHeight = 60;
+        const virusWidth = 40;
+        const virusHeight = 40;
+        const gameContainerWidth = 400;
+        const gameContainerHeight = 500;
+
+        let playerX = (gameContainerWidth - playerWidth) / 2;
+        let gameInterval;
+        let virusSpawnInterval;
+        let gameActive = false;
+        let timeSurvived = 0;
+        let virusSpeed = 2; // Velocidade inicial dos vírus
+        let spawnRate = 1500; // Tempo em ms para spawnar um novo vírus
+
+        const playerImageURL = 'http://googleusercontent.com/image_generation_content/1';
+        const virusImageURL = 'http://googleusercontent.com/image_generation_content/2';
+
+        // Inicializa o jogo
+        function initGame() {
+            playerX = (gameContainerWidth - playerWidth) / 2;
+            player.style.left = `${playerX}px`;
+            player.style.bottom = '10px'; // Garante que o player esteja na base
+            timeSurvived = 0;
+            virusSpeed = 2;
+            spawnRate = 1500;
+            timeSurvivedSpan.textContent = timeSurvived;
+            messageDiv.textContent = '';
+            gameContainer.querySelectorAll('.virus').forEach(virus => virus.remove()); // Remove vírus antigos
+            gameActive = true;
+            startGameLoop();
+        }
+
+        // Loop principal do jogo
+        function startGameLoop() {
+            gameInterval = setInterval(() => {
+                if (!gameActive) return;
+
+                timeSurvived++;
+                timeSurvivedSpan.textContent = timeSurvived;
+
+                // Aumenta a dificuldade com o tempo
+                if (timeSurvived % 10 === 0 && timeSurvived > 0) {
+                    virusSpeed += 0.2; // Aumenta a velocidade
+                    if (spawnRate > 500) { // Diminui o tempo de spawn, até um limite
+                        spawnRate -= 50;
+                        clearInterval(virusSpawnInterval);
+                        virusSpawnInterval = setInterval(createVirus, spawnRate);
+                    }
+                }
+
+                moveViruses();
+                checkCollisions();
+            }, 1000); // Atualiza o tempo a cada segundo
+
+            // Intervalo para spawnar vírus
+            virusSpawnInterval = setInterval(createVirus, spawnRate);
+        }
+
+        // Cria um novo vírus
+        function createVirus() {
+            if (!gameActive) return;
+
+            const virus = document.createElement('div');
+            virus.classList.add('virus');
+            virus.style.backgroundImage = `url('${virusImageURL}')`;
+
+            // Posição horizontal aleatória
+            virus.style.left = `${Math.random() * (gameContainerWidth - virusWidth)}px`;
+            gameContainer.appendChild(virus);
+        }
+
+        // Move os vírus para baixo
+        function moveViruses() {
+            document.querySelectorAll('.virus').forEach(virus => {
+                let currentTop = parseInt(virus.style.top) || -virusHeight;
+                virus.style.top = `${currentTop + virusSpeed}px`;
+
+                // Remove vírus que saíram da tela
+                if (currentTop > gameContainerHeight) {
+                    virus.remove();
+                }
+            });
+        }
+
+        // Verifica colisões
+        function checkCollisions() {
+            const playerRect = player.getBoundingClientRect();
+            const containerRect = gameContainer.getBoundingClientRect();
+
+            // Ajusta as coordenadas do player para serem relativas ao container do jogo
+            const playerLeft = playerRect.left - containerRect.left;
+            const playerTop = playerRect.top - containerRect.top;
+            const playerRight = playerLeft + playerWidth;
+            const playerBottom = playerTop + playerHeight;
+
+            document.querySelectorAll('.virus').forEach(virus => {
+                const virusRect = virus.getBoundingClientRect();
+                
+                // Ajusta as coordenadas do vírus para serem relativas ao container do jogo
+                const virusLeft = virusRect.left - containerRect.left;
+                const virusTop = virusRect.top - containerRect.top;
+                const virusRight = virusLeft + virusWidth;
+                const virusBottom = virusTop + virusHeight;
+
+                // Lógica de colisão AABB (Axis-Aligned Bounding Box)
+                if (playerRight > virusLeft &&
+                    playerLeft < virusRight &&
+                    playerBottom > virusTop &&
+                    playerTop < virusBottom) {
+                    endGame();
+                }
+            });
+        }
+
+        // Finaliza o jogo
+        function endGame() {
+            gameActive = false;
+            clearInterval(gameInterval);
+            clearInterval(virusSpawnInterval);
+            messageDiv.textContent = `Game Over! Você sobreviveu por ${timeSurvived} segundos!`;
+            // Remove todos os vírus restantes
+            document.querySelectorAll('.virus').forEach(virus => virus.remove());
+        }
+
+        // Controles do jogador (teclado)
+        document.addEventListener('keydown', (e) => {
+            if (!gameActive) return;
+
+            const playerSpeed = 15; // Velocidade de movimento do player
+            if (e.key === 'ArrowLeft' || e.key === 'a') {
+                playerX = Math.max(0, playerX - playerSpeed);
+            } else if (e.key === 'ArrowRight' || e.key === 'd') {
+                playerX = Math.min(gameContainerWidth - playerWidth, playerX + playerSpeed);
+            }
+            player.style.left = `${playerX}px`;
+        });
+
+        // Controles do jogador (toque para dispositivos móveis)
+        gameContainer.addEventListener('touchstart', (e) => {
+            if (!gameActive) return;
+            const touchX = e.touches[0].clientX;
+            const containerLeft = gameContainer.getBoundingClientRect().left;
+            
+            // Move o jogador para a posição do toque
+            playerX = touchX - containerLeft - (playerWidth / 2);
+            playerX = Math.max(0, Math.min(gameContainerWidth - playerWidth, playerX));
+            player.style.left = `${playerX}px`;
+            e.preventDefault(); // Previne rolagem da página
+        });
+
+        gameContainer.addEventListener('touchmove', (e) => {
+            if (!gameActive) return;
+            const touchX = e.touches[0].clientX;
+            const containerLeft = gameContainer.getBoundingClientRect().left;
+
+            playerX = touchX - containerLeft - (playerWidth / 2);
+            playerX = Math.max(0, Math.min(gameContainerWidth - playerWidth, playerX));
+            player.style.left = `${playerX}px`;
+            e.preventDefault(); // Previne rolagem da página
+        });
+
+
+        // Event Listener para o botão de reiniciar
+        restartButton.addEventListener('click', initGame);
+
+        // Inicia o jogo quando a página carrega
+        initGame();
+
+    </script>
+</body>
+</html>
